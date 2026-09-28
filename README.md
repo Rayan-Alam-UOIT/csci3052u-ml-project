@@ -1,4 +1,4 @@
-# CSCI 3052U Machine Learning I — Group Project
+# Phylogenetically-Informed Dimensionality Reduction of Linguistic Typological Data Using URIEL+
 
 **Team Name:** URIEL Underdogs
 
@@ -20,6 +20,8 @@
 
 - **Meeting Room:** [Google Meet](https://meet.google.com/mjj-bbbh-pbo)
 - **Project Board:** [Trello](https://trello.com/invite/b/6aac05071d61d26ec3de7cde/ATTI174667aaa6adcfb5b86a5f5f4ae97fd055D036C5/uriel-genetically-informed-pca)
+- **Proposal:** [Proposal](https://docs.google.com/document/d/1CeyO7gn-_KbG_dhj3lbenXAqHYt0BHl8oGZj34D51XU/edit?tab=t.0)
+- **Notebook:** [Notebook](https://colab.research.google.com/drive/1C3eEoumpxUEmOWrpkJOz13CYKKZvlSQ0?usp=sharing)
 
 ---
 
