@@ -22,7 +22,11 @@ The authors aim to create an optimization pipeline for URIEL+ typological featur
 
 ## References
 Dunn, M., Terrill, A., Reesink, G., Foley, R. A., & Levinson, S. C. (2005). Structural phylogenetics and the reconstruction of ancient language history. Science, 309(5743), 2072–2075. https://doi.org/10.1126/science.1114615
+
 Jäger, G., & Wahle, J. (2021). Phylogenetic typology. Frontiers in Psychology, 12, 682132. https://doi.org/10.3389/fpsyg.2021.682132
+
 Khan, A., Shipton, M., Anugraha, D., Duan, K., Hoang, P. H., Khiu, E., Doğruöz, A. S., & Lee, E.-S. A. (2025). URIEL+: Enhancing linguistic inclusion and usability in a typological and multilingual knowledge base. In Proceedings of the 31st International Conference on Computational Linguistics (pp. 6937–6952). Association for Computational Linguistics.
+
 Lin, Y.-H., Chen, C.-Y., Lee, J., Li, Z., Zhang, Y., Xia, M., Rijhwani, S., He, J., Zhang, Z., Ma, X., Anastasopoulos, A., Littell, P., & Neubig, G. (2019). Choosing transfer languages for cross-lingual learning. In Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics (pp. 3125–3135). Association for Computational Linguistics.
+
 Ng, Y. H., Hoang, P. H., & Lee, E.-S. A. (2025). Less is more: The effectiveness of compact typological language representations. In Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing (pp. 25805–25816). Association for Computational Linguistics.
