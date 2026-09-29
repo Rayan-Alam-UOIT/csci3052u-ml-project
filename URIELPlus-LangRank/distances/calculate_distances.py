@@ -5,9 +5,13 @@ from urielplus import urielplus as uriel
 import pandas as pd
 import csv
 import time
+import os
+
+CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 # Timing setup: logs how long each step takes, and the running total, to both the console and a log file.
-TIMING_LOG_PATH = "distances//calculate_distances_timing_log.txt"
+file_path = os.path.join(CURRENT_DIRECTORY, 'calculate_distances_timing_log.txt')
+TIMING_LOG_PATH = file_path
 start_time = time.time()
 last_checkpoint = start_time
 
@@ -121,7 +125,8 @@ MANUAL_CODE_FIXES = {
     "swa": "swah1253"   # Swahili
 }
 
-map_df = pd.read_csv('distances//urielplus//database//urielplus_csvs//uriel_glottocode_map.csv')
+file_path = os.path.join(CURRENT_DIRECTORY, 'urielplus', 'database', 'urielplus_csvs', 'uriel_glottocode_map.csv')
+map_df = file_path
 iso_to_glottocode = dict(zip(map_df['iso_code'], map_df['glottocode']))
 iso_to_glottocode.update(MANUAL_CODE_FIXES)
 
@@ -131,7 +136,8 @@ DISTANCES = ["genetic", "syntactic", "featural", "phonological", "inventory", "g
 log_step_time("Load mappings")
 
 # Calculate distances for languages in dep.
-dep_df = pd.read_csv("experiment_csvs//URIEL//dep.csv")
+file_path = os.path.join(CURRENT_DIRECTORY, 'experiment_csvs', 'URIEL', 'dep.csv')
+dep_df = pd.read_csv(file_path)
 
 dep_lang_pairs = dep_df[['Target lang', 'Transfer lang']].values.tolist()
 
@@ -140,7 +146,8 @@ iso_dep_lang_pairs = [[ISO_639_3_MAPPING.get(lang1, lang1), ISO_639_3_MAPPING.ge
 glotto_dep_lang_pairs = [[iso_to_glottocode.get(lang1, lang1), iso_to_glottocode.get(lang2, lang2)] for lang1, lang2 in iso_dep_lang_pairs]
 
 # Open CSV file to write dep distances
-with open("distances//dep_distances.csv", "w", encoding="utf-8", newline="") as file:
+file_path = os.path.join(CURRENT_DIRECTORY, 'experiment_csvs', 'URIEL', 'dep.csv')
+with open(file_path, "w", encoding="utf-8", newline="") as file:
     writer = csv.writer(file)
 
     # Write the header row to the CSV
@@ -161,14 +168,16 @@ with open("distances//dep_distances.csv", "w", encoding="utf-8", newline="") as 
 log_step_time("Calculate distances for dep")
 
 # Calculate distances for languages in el.csv
-el_df = pd.read_csv('experiment_csvs//URIEL//el.csv')
+file_path = os.path.join(CURRENT_DIRECTORY, 'experiment_csvs', 'URIEL', 'el.csv')
+el_df = pd.read_csv(file_path)
 
 el_lang_pairs = el_df[['Target lang', 'Transfer lang']].values.tolist()
 
 glotto_el_lang_pairs = [[iso_to_glottocode.get(lang1, lang1), iso_to_glottocode.get(lang2, lang2)] for lang1, lang2 in el_lang_pairs]
 
 # Open CSV file to write el distances
-with open("distances//el_distances.csv", "w", encoding="utf-8", newline="") as file:
+file_path = os.path.join(CURRENT_DIRECTORY, 'el_distances.csv')
+with open(file_path, "w", encoding="utf-8", newline="") as file:
     writer = csv.writer(file)
 
     # Write the header row to the CSV
@@ -189,14 +198,16 @@ with open("distances//el_distances.csv", "w", encoding="utf-8", newline="") as f
 log_step_time("Calculate distances for el")
 
 # Calculate distances for languages in mt.
-mt_df = pd.read_csv("experiment_csvs//URIEL//mt.csv")
+file_path = os.path.join(CURRENT_DIRECTORY, 'experiment_csvs', 'URIEL', 'mt.csv')
+mt_df = pd.read_csv(file_path)
 
 mt_lang_pairs = mt_df[['Source lang' , 'Transfer lang']].values.tolist()
 
 glotto_mt_lang_pairs = [[iso_to_glottocode.get(lang1, lang1), iso_to_glottocode.get(lang2, lang2)] for lang1, lang2 in mt_lang_pairs]
 
 # Open CSV file to write mt distances
-with open("distances//mt_distances.csv", "w", encoding="utf-8", newline="") as file:
+file_path = os.path.join(CURRENT_DIRECTORY, 'mt_distances.csv')
+with open(file_path, "w", encoding="utf-8", newline="") as file:
     writer = csv.writer(file)
 
     # Write the header row to the CSV
@@ -217,7 +228,8 @@ with open("distances//mt_distances.csv", "w", encoding="utf-8", newline="") as f
 log_step_time("Calculate distances for mt")
 
 # Calculate distances for languages in pos.
-pos_df = pd.read_csv("experiment_csvs//URIEL//pos.csv")
+file_path = os.path.join(CURRENT_DIRECTORY, 'experiment_csvs', 'URIEL', 'pos.csv')
+pos_df = pd.read_csv(file_path)
 
 pos_lang_pairs = pos_df[['Task lang' , 'Aux lang']].values.tolist()
 
@@ -226,7 +238,8 @@ iso_pos_lang_pairs = [[ISO_639_3_MAPPING.get(lang1, lang1), ISO_639_3_MAPPING.ge
 glotto_pos_lang_pairs = [[iso_to_glottocode.get(lang1, lang1), iso_to_glottocode.get(lang2, lang2)] for lang1, lang2 in iso_pos_lang_pairs]
 
 # Open CSV file to write pos distances
-with open("distances//pos_distances.csv", "w", encoding="utf-8", newline="") as file:
+file_path = os.path.join(CURRENT_DIRECTORY, 'distances', 'pos_distances.csv')
+with open(file_path, "w", encoding="utf-8", newline="") as file:
     writer = csv.writer(file)
 
     # Write the header row to the CSV
