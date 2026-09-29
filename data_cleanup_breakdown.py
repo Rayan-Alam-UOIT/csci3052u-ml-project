@@ -38,8 +38,7 @@ u.integrate_custom_databases(
     "UPDATED_SAPHON",
     "BDPROTO",
     "GRAMBANK",
-    "APICS",
-    "EWAVE"
+    "APICS"
 )
 
 
@@ -99,26 +98,18 @@ filled_by_softimpute = (
 )
 
 
-# 4. Values still missing after SoftImpute
-
-still_missing = data_post_imputation == -1
-
-
 # Count categories
 
 originally_known_count = np.sum(originally_known)
 base_lang_count = np.sum(filled_by_base_lang)
 softimpute_count = np.sum(filled_by_softimpute)
-still_missing_count = np.sum(still_missing)
 
 total = data_post_imputation.size
 
 
 # Final breakdown
 
-print("\n----------------------------------------")
 print("Final breakdown")
-print("----------------------------------------")
 
 print(
     f"Known after aggregation:       "
@@ -138,12 +129,6 @@ print(
     f"({softimpute_count / total * 100:.2f}%)"
 )
 
-print(
-    f"Still missing:                  "
-    f"{still_missing_count:,} "
-    f"({still_missing_count / total * 100:.2f}%)"
-)
-
 print(f"Total data points:              {total:,}")
 
 
@@ -153,13 +138,12 @@ classified = (
     originally_known_count
     + base_lang_count
     + softimpute_count
-    + still_missing_count
 )
 
 print(f"\nClassified data points:         {classified:,}")
 
 if classified == total:
-    print("✓ All data points accounted for.")
+    print("All data points accounted for.")
 else:
     print("WARNING: Data point counts do not add up!")
 
@@ -169,15 +153,13 @@ else:
 labels = [
     "Known after aggregation",
     "Filled by related language",
-    "Filled by SoftImpute",
-    "Still missing"
+    "Filled by SoftImpute"
 ]
 
 sizes = [
     originally_known_count,
     base_lang_count,
-    softimpute_count,
-    still_missing_count
+    softimpute_count
 ]
 
 percentages = [
