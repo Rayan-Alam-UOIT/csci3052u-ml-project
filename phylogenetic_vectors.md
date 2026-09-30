@@ -145,6 +145,32 @@ print("edges (nodes with a parent):", sum(len(p) > 1 for p in paths))   # -> 858
 `lang_fam_geo.csv` is the correct version of the file that
 `_calculate_phylogeny_vectors()` was built against.
 
+### 3.1b Restricting the Family Statistics to the Vector Languages
+
+`lang_fam_geo.csv` has 26,881 rows, but `_calculate_phylogeny_vectors()` only
+builds vector rows for the languages in `self.langs[1]`. The saved output,
+`family_features.npz`, holds exactly that list: **8,172 languages** (the same
+list, in the same order, as `features.npz`). Every one of them has a row in
+`lang_fam_geo.csv`. For 8,009 of them the lineage is non-empty; the other 163
+appear in the matrix with all-zero family values.
+
+The node and edge check in §3.1 correctly uses every CSV row, because that is
+what the URIEL+ code does when defining the 8,887 features. The depth and
+family statistics below, however, describe the languages that actually receive
+vectors, so they use only those 8,172 rows.
+
+#### Script — Restrict to the Vector Languages
+
+```python
+import numpy as np
+
+with np.load("family_features.npz", allow_pickle=True) as z:
+    vector_langs = set(z["langs"].astype(str))
+
+df_vec = df[df["language_id"].isin(vector_langs)].copy()
+print(len(df), "->", len(df_vec))   # 26881 -> 8172
+```
+
 ### 3.2 Lineage Depth Distribution
 
 #### Script — Lineage Depth Statistics
@@ -152,49 +178,106 @@ print("edges (nodes with a parent):", sum(len(p) > 1 for p in paths))   # -> 858
 ```python
 # lambda v: ... defines a small, unnamed function inline — v is one row's
 # lineage value each time it runs. Used here since it's only needed once.
-df["depth"] = df["lineage"].map(lambda v: len(lineage_parts(v)))
-nonzero_depth = df.loc[df["depth"] > 0, "depth"]
+df_vec["depth"] = df_vec["lineage"].map(lambda v: len(lineage_parts(v)))
+nonzero_depth = df_vec.loc[df_vec["depth"] > 0, "depth"]
 
 print("median depth:", nonzero_depth.median())   # -> 6.0
-print("mean depth:", round(nonzero_depth.mean(), 2))  # -> 6.85
+print("mean depth:", round(nonzero_depth.mean(), 2))  # -> 6.24
 print("max depth:", nonzero_depth.max())         # -> 26
 ```
 
-**Result:** the typical language sits six levels deep in its family tree
-(median 6.0, mean 6.85). The deepest chain reaches 26 levels, held by
-languages in the Kikongo Language Cluster (Atlantic-Congo branch), which
-Glottolog subdivides unusually finely.
+**Result:** among the 8,009 vector languages with a lineage, the typical
+language sits six levels deep in its family tree (median 6.0, mean 6.24;
+middle half between 4 and 9 levels). The deepest chain reaches 26 levels,
+held by two languages in the Kikongo Language Cluster (Atlantic-Congo branch),
+which Glottolog subdivides unusually finely. (Over all 26,881 CSV rows the mean
+is higher, 6.85, so the CSV-wide figure overstates typical depth for the
+languages that actually get vectors.)
 
-### 3.3 Largest Families by Row Count
+#### Script — Depth Histogram
+
+```python
+import matplotlib.pyplot as plt   # imported once here; reused in §3.3 and §3.4
+
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.hist(nonzero_depth, bins=np.arange(0.5, 27.5, 1), edgecolor="white")  # one bar centred on each whole depth
+ax.axvline(
+    nonzero_depth.median(), color="red", linestyle="--",
+    label=f"median = {nonzero_depth.median():.0f}",
+)
+ax.set_xlabel("Lineage depth (levels)")
+ax.set_ylabel("Number of languages")
+ax.set_title("Lineage depth distribution (vector languages)")
+ax.legend()
+plt.tight_layout()
+plt.savefig("fig_depth.png", dpi=200)
+plt.show()
+```
+
+![Histogram of lineage depth across languages, with a dashed red line at the median of 6](phylogenetic_vectors_figures/fig_depth.png)
+
+*Figure 1. Among the vector languages with a lineage, 57.5% sit between 4 and
+9 levels deep, with the peak at 5 and the median at 6. The right-hand tail is
+thin: only 32 languages exceed 17 levels, and just two reach 26 (too few to
+show as visible bars); the deepest are in the finely subdivided Kikongo
+Language Cluster.*
+
+### 3.3 Largest Families Among the Vector Languages
 
 #### Script — Root Family Counts
 
 ```python
 # take the first item in the lineage tuple (the top-level family);
 # fall back to None if the lineage is empty
-df["root"] = df["lineage"].map(lambda v: lineage_parts(v)[0] if lineage_parts(v) else None)
-print(df["root"].value_counts().head(10))
+df_vec["root"] = df_vec["lineage"].map(lambda v: lineage_parts(v)[0] if lineage_parts(v) else None)
+print(df_vec["root"].value_counts().head(10))
 ```
 
-| Family | Rows |
+| Family | Vector languages |
 |---|---|
-| Atlantic-Congo | 4,839 |
-| Austronesian | 4,087 |
-| Indo-European | 3,141 |
-| Sino-Tibetan | 1,915 |
-| Afro-Asiatic | 1,447 |
-| Nuclear Trans New Guinea | 829 |
-| Pama-Nyungan | 643 |
-| Austroasiatic | 527 |
-| Otomanguean | 386 |
-| Bookkeeping | 385 |
+| Atlantic-Congo | 1,377 |
+| Austronesian | 1,305 |
+| Indo-European | 662 |
+| Sino-Tibetan | 467 |
+| Afro-Asiatic | 377 |
+| Nuclear Trans New Guinea | 316 |
+| Pama-Nyungan | 276 |
+| Bookkeeping | 187 |
+| Otomanguean | 186 |
+| Austroasiatic | 165 |
+
+Counts cover the 8,009 vector languages that have a lineage. Filtering
+reorders the tail of the list: over all CSV rows Austroasiatic (527) ranked
+eighth and "Bookkeeping" (385) tenth, while among the vector languages
+"Bookkeeping" moves up to eighth.
 
 "Bookkeeping" is not a genuine language family; it is a label Glottolog
 uses to retain codes for languoids that turned out not to exist, or that
-are too poorly attested to classify. A "Sign Language" label (344 rows,
-not shown above) serves a similar function: Glottolog groups all sign
-languages under one placeholder label because they are not related to one
+are too poorly attested to classify. A "Sign Language" label (344 rows in the
+CSV, 139 among the vector languages; not shown above) serves a similar
+function: Glottolog groups all sign languages under one placeholder label because they are not related to one
 another by descent the way spoken-language families are.
+
+#### Script — Top Root Families Chart
+
+```python
+top = df_vec["root"].value_counts().head(10)[::-1]   # reversed so the largest is on top
+colors = ["tab:orange" if name == "Bookkeeping" else "tab:blue" for name in top.index]
+
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.barh(top.index, top.values, color=colors)
+ax.set_xlabel("Number of languages (rows)")
+ax.set_title("Top 10 root families (orange = not a genuine family)")
+plt.tight_layout()
+plt.savefig("fig_families.png", dpi=200)
+plt.show()
+```
+
+![Horizontal bar chart of the ten largest root families, with Bookkeeping highlighted in orange](phylogenetic_vectors_figures/fig_families.png)
+
+*Figure 2. Atlantic-Congo and Austronesian dominate the vector languages.
+"Bookkeeping" (orange) ranks eighth despite not being a real family, so any
+analysis by family size should exclude it.*
 
 ### 3.4 Longitude Range Anomaly
 
@@ -205,14 +288,58 @@ oob = df[(df["longitude"] > 180) | (df["longitude"] < -180)]
 print("rows with longitude outside -180..180:", len(oob))   # -> 3211
 ```
 
-3,211 rows (12%) store longitude as a value greater than 180 instead of
-using negative numbers. For example, one language located in Maine, USA
+In the full CSV, 3,211 of the 26,229 rows with coordinates (12.2%) store
+longitude as a value greater than 180 instead of using negative numbers;
+among the vector languages, 1,257 of 7,980 with coordinates (15.8%) do. For example, one language located in Maine, USA
 is recorded at `291.34` instead of `-68.66` (the same location, since
 `291.34 - 360 = -68.66`). This does not affect the great-circle distance 
 calculation (`getGreatCircleDistance()`) in `_calculate_geocoord_vectors()`, since the underlying
 Haversine formula is mathematically invariant or unchanged to a full 360° shift.
 It would, however, affect any downstream code that plots these coordinates
 or assumes a conventional −180°…180° range.
+
+Geography vectors are built for the same 8,172 vector languages as the
+phylogeny vectors, so the figure below is restricted to those languages
+(`df_vec`, from §3.1b). The script prints the out-of-range count for both the
+whole CSV and the vector languages, which is where the two figures above come
+from.
+
+#### Script — Longitude Convention Comparison
+
+```python
+# how many rows use the 0-360 convention: whole CSV vs. vector languages only
+for label, frame in [("all CSV rows", df), ("vector languages", df_vec)]:
+    n_out = ((frame["longitude"] > 180) | (frame["longitude"] < -180)).sum()
+    n_geo = frame["longitude"].notna().sum()
+    print(f"longitude outside -180..180 ({label}): {n_out} of {n_geo} with coordinates ({n_out / n_geo:.1%})")
+
+geo = df_vec.dropna(subset=["latitude", "longitude"]).copy()
+geo["lon_norm"] = ((geo["longitude"] + 180) % 360) - 180   # same place, -180..180 range
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
+
+axes[0].scatter(geo["longitude"], geo["latitude"], s=2, alpha=0.4)
+axes[0].axvline(180, color="red", linestyle="--")
+axes[0].set_title("As stored (0–360 values present)")
+
+axes[1].scatter(geo["lon_norm"], geo["latitude"], s=2, alpha=0.4, color="tab:green")
+axes[1].set_title("Normalized to −180..180")
+
+for ax in axes:
+    ax.set_xlabel("Longitude")
+axes[0].set_ylabel("Latitude")
+
+plt.tight_layout()
+plt.savefig("fig_longitude.png", dpi=200)
+plt.show()
+```
+
+![Two side-by-side scatter plots of language coordinates: as stored with points beyond 180 degrees, and normalized to the standard range](phylogenetic_vectors_figures/fig_longitude.png)
+
+*Figure 3. Vector languages only. Left: languages stored with longitude above
+180 (right of the red line) appear detached from the rest of the map. Right: after normalizing, the
+same points fall in their conventional positions in the Americas, confirming
+this is a formatting difference, not a data error.*
 
 ---
 
@@ -317,10 +444,14 @@ summaries derived from Glottolog rather than Glottolog itself.
 - Spot-checks against Glottolog's live database confirmed the data
   reflects Glottolog's current classification rather than an older or
   simplified version.
+- The family statistics describe the 8,172 languages that receive
+  phylogeny vectors (out of 26,881 CSV rows); the node and edge counts use
+  the full CSV because the URIEL+ code does.
 - Two data-quality points are worth noting: the "Bookkeeping" and "Sign
   Language" labels are administrative categories rather than genuine
-  language families, and approximately 12% of longitude values are stored
-  in 0°–360° format rather than −180°…180°.
+  language families, and approximately 16% of the vector languages' longitude values (12% across
+  the full CSV) are stored in 0°–360° format rather than −180°…180° (see
+  Figure 3).
 
 ---
 
