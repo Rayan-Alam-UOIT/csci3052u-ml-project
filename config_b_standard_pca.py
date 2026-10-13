@@ -34,6 +34,9 @@ with tempfile.TemporaryDirectory() as temp_dir:
 
     input_path = None
     for root, dirs, files in os.walk(extract_dir):
+        if "non_imputed_data" in root:
+            continue
+        
         if "features.npz" in files:
             input_path = os.path.join(root, "features.npz")
             break
