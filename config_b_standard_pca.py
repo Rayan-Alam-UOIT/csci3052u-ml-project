@@ -32,11 +32,15 @@ with tempfile.TemporaryDirectory() as temp_dir:
     with zipfile.ZipFile(IN_ZIP, "r") as archive:
         archive.extractall(extract_dir)
 
-    input_path = os.path.join(extract_dir, "data", "features.npz")
+    input_path = None
+    for root, dirs, files in os.walk(extract_dir):
+        if "features.npz" in files:
+            input_path = os.path.join(root, "features.npz")
+            break
 
-    if not os.path.isfile(input_path):
+    if not input_path or not os.path.isfile(input_path):
         raise FileNotFoundError(
-            f"Expected imputed features.npz not found: {input_path}"
+            f"Expected imputed features.npz not found anywhere in {IN_ZIP}"
         )
 
     print(f"Using input: {input_path}")
