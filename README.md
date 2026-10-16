@@ -36,40 +36,43 @@ conda create -n urielplus python=3.11
 conda activate urielplus
 pip install -r requirements.txt
 ```
+The pipeline was tested on Windows. Running it on macOS or Linux may require adjusting file paths in some LangRank scripts.
 
 Open each notebook with the `urielplus` environment as its kernel. The LangRank notebooks check that LightGBM works (a small ranking fit) and install a compatible LightGBM and scikit-learn pair if it crashes.
 
 ## Running the Pipeline
 
-Run the Steps in order. Every notebook is Run All, and each one stops with an error if a check fails. ZIP extraction, data preparation, and packaging are handled automatically by the scripts and notebooks.
+Run the steps in order. Run every cell in each notebook using **Run All**, including the setup, validation and packaging cells. Failed validation checks raise an error. ZIP extraction, data preparation and packaging are handled automatically by the scripts and notebooks.
 
 | Step | Run | Produces | Time |
 |---|---|---|---|
 | 1 | `milestone_2_data.ipynb` | `data.zip` | minutes |
 | 2 | `config_b_standard_pca.py` | `standard_pca.zip` | seconds |
 | 3 | `URIELPlus-LangRank/langrank_uriel_plus_config_a.ipynb` | `base_urielplus_reproduction.zip` | about 2.5 to 3 h |
-| 4 | `URIELPlus-LangRank/langrank_uriel_plus_config_b.ipynb` | `standard_pca_reproduction.zip` | about 2.5 |
+| 4 | `URIELPlus-LangRank/langrank_uriel_plus_config_b.ipynb` | `standard_pca_reproduction.zip` | about 2.5 to 3 h |
+
+Runtime estimates depend on hardware and system load.
 
 ### Step 1: Build the Imputed Matrix
 
-Run `milestone_2_data.ipynb`. It builds the URIEL+ configuration below and automatically packages the resulting arrays into `data.zip` at the repository root.
+Run `milestone_2_data.ipynb` with the repository root as the working directory. It builds the URIEL+ configuration below and automatically packages the resulting arrays into `data.zip` at the repository root.
 
 - aggregation mode `U` (union)
 - source databases UPDATED_SAPHON, BDPROTO, GRAMBANK and APiCS
 - Glottolog integration skipped and eWAVE excluded
 - BFS genetic imputation, then SoftImpute
 
-The result is an 8,128-language by 593-feature binary typological matrix (`data/features.npz`) plus the family, script and geocoordinate arrays. The pre-imputation version is kept in `data/non_imputed_data/`.
+The result is an 8,128-language by 593-feature binary typological matrix (`features.npz`), plus the family, script and geocoordinate arrays, all packaged inside `data.zip`. The pre-imputation version is stored under `non_imputed_data/` inside the ZIP.
 
 ### Step 2: Reduce the Features (Config B)
 
 From the repository root, run:
 
 ```
-python config_b_standard_pca.py --n 300
+python config_b_standard_pca.py
 ```
 
-The script automatically extracts the required data from `data.zip`, fits a centred, unstandardized PCA at 95% explained variance, scores each feature by its maximum absolute loading over the retained components, and keeps the top N features in their original column order.
+The script selects 300 features, as specified by `N = 300` inside the script. It automatically extracts the required data from `data.zip`, fits a centred, unstandardized PCA at 95% explained variance, scores each feature by its maximum absolute loading over the retained components, and keeps the top N features in their original column order. The Config B notebook's reference check corresponds to this 300-feature configuration.
 
 It writes three files and packages them into `standard_pca.zip`:
 
@@ -79,12 +82,12 @@ It writes three files and packages them into `standard_pca.zip`:
 
 ### Steps 3 and 4: Run LangRank (Configs A and B)
 
-Open the notebook inside the `URIELPlus-LangRank` folder (or set the `LANGRANK_DIR` environment variable) and Run All. Each notebook:
+Run Config A to completion, including the final packaging cell, before starting Config B. Open each notebook inside the `URIELPlus-LangRank` folder (or set the `LANGRANK_DIR` environment variable) and use **Run All**. Each notebook:
 
 1. Checks the environment,
 2. Places the URIEL+ `.npz` files into `distances/urielplus/database/` (Config A takes all four from `data.zip`; Config B takes `features.npz` from `standard_pca.zip` and the other three from `data.zip`),
 3. Checks the placed data by recomputing the Czech–Russian distance row,
-4. Recomputes the distances for the four tasks (the slow part, over 5,754 language pairs),
+4. Recomputes the distances for the four tasks (the slow part, over 5,754 language pairs), unless complete distance CSVs already exist,
 5. Writes the distances into the experiment CSVs,
 6. Runs the eight experiments (DEP, EL, MT, POS, each in `all` and `lang` mode),
 7. Shows a table of average NDCG@3 and packages everything generated into its reproduction zip.
@@ -93,7 +96,7 @@ Keep the machine awake and the kernel running. If the distance step is interrupt
 
 ## Outputs
 
-Each reproduction zip contains the distance CSVs, the updated experiment CSVs, the timing logs, `scores.txt` (per-fold and average NDCG@3 for every task and mode) and `results_table.csv` (average NDCG@3 per task and mode, plus the mean over the four tasks). To compare configurations, read `results_table.csv` from `base_urielplus_reproduction.zip` and `standard_pca_reproduction.zip`.
+Each reproduction ZIP contains the distance CSVs, the updated experiment CSVs, the four URIEL+ database arrays, the timing logs, `scores.txt` (per-fold and average NDCG@3 for every task and mode) and `results_table.csv` (average NDCG@3 per task and mode, plus the mean over the four tasks). All NDCG@3 scores in the results tables are reported on a 0–100 scale. To compare configurations, read `results_table.csv` from `base_urielplus_reproduction.zip` and `standard_pca_reproduction.zip`.
 
 ## Data and Licenses
 
