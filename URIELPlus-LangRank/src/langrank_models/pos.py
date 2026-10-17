@@ -1,4 +1,5 @@
 import argparse
+import os
 import pandas as pd
 import numpy as np
 import time
@@ -41,7 +42,7 @@ def log_step_time(step_name):
 
 
 # Load the data
-data = pd.read_csv('src\\csv_datasets\\pos.csv')
+data = pd.read_csv(os.path.join('src', 'csv_datasets', 'pos.csv'))
 logo = LeaveOneGroupOut()
 
 log_step_time("Load data")

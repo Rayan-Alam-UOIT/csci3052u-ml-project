@@ -36,7 +36,9 @@ conda create -n urielplus python=3.11
 conda activate urielplus
 pip install -r requirements.txt
 ```
-The pipeline was tested on Windows. Running it on macOS or Linux may require adjusting file paths in some LangRank scripts.
+The pipeline was tested on Windows. Running it on macOS or Linux may require adjusting file paths in some LangRank scripts. 
+
+Note for macOS users: LightGBM requires the OpenMP runtime library (libomp). Ensure the latest compatible version is installed using your preferred package manager before running the project.
 
 Open each notebook with the `urielplus` environment as its kernel. The LangRank notebooks check that LightGBM works (a small ranking fit) and install a compatible LightGBM and scikit-learn pair if it crashes.
 
