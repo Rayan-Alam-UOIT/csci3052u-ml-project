@@ -36,7 +36,7 @@ conda create -n urielplus python=3.11
 conda activate urielplus
 pip install -r requirements.txt
 ```
-The pipeline was tested on Windows. Running it on macOS or Linux may require adjusting file paths in some LangRank scripts. 
+The pipeline was tested on Windows and macOS; however, it uses universal file paths and should work on Linux operating systems as well.
 
 Note for macOS users: LightGBM requires the OpenMP runtime library (libomp). Ensure the latest compatible version is installed using your preferred package manager before running the project.
 
@@ -99,6 +99,35 @@ Keep the machine awake and the kernel running. If the distance step is interrupt
 ## Outputs
 
 Each reproduction ZIP contains the distance CSVs, the updated experiment CSVs, the four URIEL+ database arrays, the timing logs, `scores.txt` (per-fold and average NDCG@3 for every task and mode) and `results_table.csv` (average NDCG@3 per task and mode, plus the mean over the four tasks). All NDCG@3 scores in the results tables are reported on a 0–100 scale. To compare configurations, read `results_table.csv` from `base_urielplus_reproduction.zip` and `standard_pca_reproduction.zip`.
+
+## Expected Results
+
+After completing Steps 3 and 4, the `results_table.csv` files in `base_urielplus_reproduction.zip` (Config A) and `standard_pca_reproduction.zip` (Config B) should report the following average NDCG@3 scores.
+
+All scores are reported on a **0–100 scale**. Small differences may occur due to hardware, software versions, or execution environment.
+
+### Config A: Base URIEL+
+
+| Method | DEP | EL | MT | POS | Avg |
+|---|---:|---:|---:|---:|---:|
+| LangRank (all) | 76.0 | 65.5 | 53.6 | 23.6 | 54.7 |
+| LangRank (lang feats) | 72.8 | 62.8 | 33.5 | 20.2 | 47.3 |
+
+### Config B: Standard PCA (300 Features)
+
+| Method | DEP | EL | MT | POS | Avg |
+|---|---:|---:|---:|---:|---:|
+| LangRank (all) | 76.8 | 75.1 | 54.0 | 28.9 | 58.7 |
+| LangRank (lang feats) | 73.0 | 74.0 | 34.5 | 23.2 | 51.2 |
+
+### Comparing Configurations
+
+Config B achieves a higher average NDCG@3 than Config A for both evaluation modes:
+
+- **LangRank (all):** 58.7 vs. 54.7, an improvement of 4.0 points.
+- **LangRank (lang feats):** 51.2 vs. 47.3, an improvement of 3.9 points.
+
+To check the reproduction, compare these reference values against the corresponding rows in `results_table.csv` inside each reproduction ZIP. The `scores.txt` files provide the per-fold results and additional details.
 
 ## Data and Licenses
 
