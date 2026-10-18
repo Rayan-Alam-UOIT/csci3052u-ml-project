@@ -29,13 +29,14 @@ _This README is a work in progress and will be updated as the project develops._
 
 ## Setup
 
-Requirements: Python 3.10 or newer (the pinned versions were verified on Python 3.11.3) and about 3 hours of uninterrupted compute for each of Steps 3 and 4.
+Requirements: Python 3.11 (the pinned versions were verified on Python 3.11.3) and about 3 hours of uninterrupted compute for each of Steps 3 and 4. Other Python versions are untested and may not reproduce the expected results.
 
 ```
 conda create -n urielplus python=3.11
 conda activate urielplus
 pip install -r requirements.txt
 ```
+
 The pipeline was tested on Windows and macOS; however, it uses universal file paths and should work on Linux operating systems as well.
 
 Note for macOS users: LightGBM requires the OpenMP runtime library (libomp). Ensure the latest compatible version is installed using your preferred package manager before running the project.
