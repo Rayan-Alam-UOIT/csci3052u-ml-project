@@ -1,0 +1,52 @@
+rows used: 8128 (first 8128 language rows of URIELPlus\urielplus\database\urielplus_csvs\lang_fam_geo.csv)
+
+Weight variants (normalized to sum to 1):
+  w_finest               min=1.59e-05 median=1.11e-04 max=2.23e-04 max/min=14.0  n_eff=6558 of 8128 (81%)
+  w_level3_a1            min=6.74e-07 median=1.82e-05 max=6.55e-04 max/min=972.0  n_eff=2243 of 8128 (28%)
+  w_level3_a05           min=1.28e-05 median=6.66e-05 max=3.99e-04 max/min=31.2  n_eff=4109 of 8128 (51%)
+  w_finest_adminmedian   min=1.66e-05 median=1.16e-04 max=2.32e-04 max/min=14.0  n_eff=6627 of 8128 (82%)
+  w_finest_adminzero     min=1.73e-05 median=1.21e-04 max=2.43e-04 max/min=14.0  n_eff=6276 of 8128 (77%)
+  (uniform weights: n_eff = 8128)
+
+language kinds: {'normal': 7594, 'admin': 371, 'isolate': 163}
+'Unclassified' fallbacks to parent label: 115
+corr(lineage depth, primary weight) = -0.226
+
+Most heavily down-weighted groups (genuine groups, by lineage; size = languages):
+    14  Malayalamoid   [Dravidian, South Dravidian, South Dravidian I, Tamil-Kannada, Tamil-Ko]
+    12  Bhil   [Indo-European, Classical Indo-European, Indo-Iranian, Indo-Aryan, Midd]
+    10  ASLic   [Sign Language, L1 Sign Language, LSFic, ASLic]
+     9  Northern Iroquoian   [Iroquoian, Northern Iroquoian]
+     8  Central Core Zapotec   [Otomanguean, Eastern Otomanguean, Popoloca-Zapotecan, Zapotecan, Zapot]
+     8  Torres-Banks linkage   [Austronesian, Malayo-Polynesian, Eastern Malayo-Polynesian, Oceanic, N]
+     8  Malayo-Polynesian   [Austronesian, Malayo-Polynesian]
+     7  American Sign   [Sign Language, L1 Sign Language, LSFic, ASLic, American Sign]
+     7  East Coast Bungku-Tolaki   [Austronesian, Malayo-Polynesian, Celebic, Greater Eastern Celebic, Eas]
+     7  Ngarinyin   [Worrorran, Ngarinyin]
+
+Lineage roots (check for pseudo-families missing from the administrative list):
+   1377  Atlantic-Congo
+   1305  Austronesian
+    619  Indo-European
+    467  Sino-Tibetan
+    377  Afro-Asiatic
+    316  Nuclear Trans New Guinea
+    276  Pama-Nyungan
+    187  Bookkeeping  <- administrative
+    186  Otomanguean
+    165  Austroasiatic
+    163  (isolate)
+    139  Sign Language
+     95  Tai-Kadai
+     90  Dravidian
+     77  Mande
+     75  Tupian
+     68  Uto-Aztecan
+     65  Central Sudanic
+     62  Arawakan
+     61  Uralic
+     58  Nilotic
+     55  Nuclear Torricelli
+     53  Unattested  <- administrative
+     52  Algic
+     48  Athabaskan-Eyak-Tlingit
