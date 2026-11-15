@@ -6,6 +6,7 @@ import pandas as pd
 import csv
 import time
 from pathlib import Path
+import zipfile
 
 # Timing setup: logs how long each step takes, and the running total, to both the console and a log file.
 CURRENT_DIRECTORY = Path(__file__).resolve().parent
@@ -131,127 +132,161 @@ map_df = pd.read_csv(
 iso_to_glottocode = dict(zip(map_df['iso_code'], map_df['glottocode']))
 iso_to_glottocode.update(MANUAL_CODE_FIXES)
 
-# List of linguistic distance types to calculate between language pairs
+# All eight distances, preserving the original output order
 DISTANCES = ["genetic", "syntactic", "featural", "phonological", "inventory", "geographic", "morphological", "script"]
+# Read these from fixed_distances.zip
+FIXED_DISTANCES = ["genetic", "geographic", "script"]
+# Calculate only these five distances with URIEL+
+VARIABLE_DISTANCES = ["syntactic", "featural", "phonological", "inventory", "morphological"]
+
+FIXED_ZIP_PATH = CURRENT_DIRECTORY / "fixed_distances.zip"
+
+# Column names and original language-code conversion rules
+TASK_SPECS = {
+    "dep": ("Target lang", "Transfer lang", True),
+    "el": ("Target lang", "Transfer lang", False),
+    "mt": ("Source lang", "Transfer lang", False),
+    "pos": ("Task lang", "Aux lang", True),
+}
+
+assert FIXED_ZIP_PATH.exists(), f"Fixed-distance archive not found: {FIXED_ZIP_PATH}"
+
+def load_fixed_distances(archive, task, col1, col2):
+    possible_names = {f"{task}_distances.csv", f"{task}_fixed_distances.csv", f"fixed_{task}_distances.csv", f"{task}.csv"}
+
+    matches = [member for member in archive.namelist() if member.replace("\\", "/").split("/")[-1].lower() in possible_names]
+
+    if len(matches) != 1:
+        raise ValueError(f"Expected one cached CSV for {task}, but found {matches}. ZIP contents: {archive.namelist()}")
+
+    # Read directly from the ZIP, without extracting files
+    with archive.open(matches[0]) as f:
+        fixed_df = pd.read_csv(f, sep=None, engine="python", encoding="utf-8-sig")
+
+    fixed_df.columns = [str(column).strip() for column in fixed_df.columns]
+
+    required = ([col1, col2] + [d.upper() for d in FIXED_DISTANCES])
+
+    missing_columns = [column for column in required if column not in fixed_df.columns]
+
+    if missing_columns:
+        raise ValueError(f"Missing columns in cached {task} CSV: {missing_columns}")
+
+    lookup = {}
+
+    for row in fixed_df[required].itertuples(index=False, name=None):
+        lang1, lang2, *raw_values = row
+
+        if pd.isna(lang1) or pd.isna(lang2):
+            raise ValueError(f"Missing language code in cached {task} CSV")
+
+        key = (str(lang1).strip(), str(lang2).strip())
+
+        # Preserve missing numeric values as empty CSV cells
+        values = {
+            distance: (
+                None if pd.isna(value) else float(value)
+            )
+            for distance, value in zip(FIXED_DISTANCES, raw_values)
+        }
+
+        if key in lookup and lookup[key] != values:
+            raise ValueError(f"Conflicting cached distances for {key} in {task}")
+
+        lookup[key] = values
+
+    print(f"Loaded {len(lookup)} cached pairs for {task} from {matches[0]}")
+
+    return lookup
+
+def convert_pair(lang1, lang2, use_iso_mapping):
+    lang1 = str(lang1).strip()
+    lang2 = str(lang2).strip()
+
+    if use_iso_mapping:
+        lang1 = ISO_639_3_MAPPING.get(lang1, lang1)
+        lang2 = ISO_639_3_MAPPING.get(lang2, lang2)
+
+    lang1 = iso_to_glottocode.get(lang1, lang1)
+    lang2 = iso_to_glottocode.get(lang2, lang2)
+
+    return (lang1, lang2)
+
+variable_cache = {}
+
+def calculate_variable_distances(lang_pair):
+    key = tuple(lang_pair)
+
+    if key not in variable_cache:
+        result = list(u.new_distance(VARIABLE_DISTANCES, list(lang_pair)))
+
+        if len(result) != len(VARIABLE_DISTANCES):
+            raise ValueError(f"Unexpected distance count for {lang_pair}")
+
+        variable_cache[key] = dict(zip(VARIABLE_DISTANCES, result))
+
+    return variable_cache[key]
 
 log_step_time("Load mappings")
 
-# Calculate distances for languages in dep.
-dep_df = pd.read_csv(PROJECT_ROOT / "experiment_csvs" / "URIEL" / "dep.csv")
+# Process all four tasks
+with zipfile.ZipFile(FIXED_ZIP_PATH, "r") as archive:
+    for task, (col1, col2, use_iso_mapping) in TASK_SPECS.items():
 
-dep_lang_pairs = dep_df[['Target lang', 'Transfer lang']].values.tolist()
+        print(f"\nProcessing {task}...")
 
-iso_dep_lang_pairs = [[ISO_639_3_MAPPING.get(lang1, lang1), ISO_639_3_MAPPING.get(lang2, lang2)] for lang1, lang2 in dep_lang_pairs]
+        input_path = PROJECT_ROOT / "experiment_csvs" / "URIEL" / f"{task}.csv"
 
-glotto_dep_lang_pairs = [[iso_to_glottocode.get(lang1, lang1), iso_to_glottocode.get(lang2, lang2)] for lang1, lang2 in iso_dep_lang_pairs]
+        output_path = CURRENT_DIRECTORY / f"{task}_distances.csv"
 
-# Open CSV file to write dep distances
-with open(CURRENT_DIRECTORY / "dep_distances.csv", "w", encoding="utf-8", newline="") as file:
-    writer = csv.writer(file)
+        # Load the experiment's fixed distances
+        fixed_lookup = load_fixed_distances(archive, task, col1, col2)
 
-    # Write the header row to the CSV
-    header = ["Target lang", "Transfer lang"] + [d.upper() for d in DISTANCES]
-    writer.writerow(header)
+        # Load the input language pairs
+        df = pd.read_csv(input_path)
 
-    # Loop through each language pair and compute distances
-    for lang_pair in glotto_dep_lang_pairs:
-        distance_values = u.new_distance(DISTANCES, lang_pair)  # Returns list of distances
+        lang_pairs = [convert_pair(lang1, lang2, use_iso_mapping) for lang1, lang2 in df[[col1, col2]].itertuples(index=False, name=None)]
 
-        # Print formatted distances to console (for debugging/inspection)
-        distance_str = ",".join(f"{value:.4f}" for value in distance_values)
-        print(distance_str)
+        # Validate every pair BEFORE calculating distances
+        missing_pairs = [pair for pair in lang_pairs if pair not in fixed_lookup]
 
-        # Write result to CSV: [source_lang, target_lang, distances...]
-        writer.writerow([lang_pair[0], lang_pair[1]] + distance_values)
+        if missing_pairs:
+            raise ValueError(f"{task}: {len(missing_pairs)} pairs are missing from fixed_distances.zip. Examples: {missing_pairs[:5]}. Check that cached language codes are Glottocodes and match the input experiments.")
 
-log_step_time("Calculate distances for dep")
+        # Create the complete distance CSV
+        with open(output_path, "w", encoding="utf-8", newline="") as file:
+            writer = csv.writer(file)
 
-# Calculate distances for languages in el.csv
-el_df = pd.read_csv(PROJECT_ROOT / "experiment_csvs" / "URIEL" / "el.csv")
+            header = ([col1, col2] + [d.upper() for d in DISTANCES])
+            writer.writerow(header)
 
-el_lang_pairs = el_df[['Target lang', 'Transfer lang']].values.tolist()
+            for lang_pair in lang_pairs:
+                # Three distances from the ZIP
+                fixed = fixed_lookup[lang_pair]
 
-glotto_el_lang_pairs = [[iso_to_glottocode.get(lang1, lang1), iso_to_glottocode.get(lang2, lang2)] for lang1, lang2 in el_lang_pairs]
+                # Five distances from URIEL+
+                variable = calculate_variable_distances(lang_pair)
 
-# Open CSV file to write el distances
-with open(CURRENT_DIRECTORY / "el_distances.csv", "w", encoding="utf-8", newline="") as file:
-    writer = csv.writer(file)
+                # Merge into one dictionary
+                combined = {**fixed, **variable}
 
-    # Write the header row to the CSV
-    header = ["Target lang", "Transfer lang"] + [d.upper() for d in DISTANCES]
-    writer.writerow(header)
+                # Preserve the original eight-column order
+                distance_values = [combined[d] for d in DISTANCES]
 
-    # Loop through each language pair and compute distances
-    for lang_pair in glotto_el_lang_pairs:
-        distance_values = u.new_distance(DISTANCES, lang_pair)  # Returns list of distances
+                # Keep the original console output format
+                distance_str = ",".join("" if value is None or pd.isna(value) else f"{float(value):.4f}" for value in distance_values)
+                print(distance_str)
 
-        # Print formatted distances to console (for debugging/inspection)
-        distance_str = ",".join(f"{value:.4f}" for value in distance_values)
-        print(distance_str)
+                writer.writerow(list(lang_pair) + distance_values)
 
-        # Write result to CSV: [source_lang, target_lang, distances...]
-        writer.writerow([lang_pair[0], lang_pair[1]] + distance_values)
+        log_step_time(f"Calculate distances for {task}")
 
-log_step_time("Calculate distances for el")
+print(f"\nUnique pairs recalculated: {len(variable_cache)}")
 
-# Calculate distances for languages in mt.
-mt_df = pd.read_csv(PROJECT_ROOT / "experiment_csvs" / "URIEL" / "mt.csv")
+total_time = time.time() - start_time
 
-mt_lang_pairs = mt_df[['Source lang' , 'Transfer lang']].values.tolist()
+print(f"\nAll done. Total time: {total_time:.2f}s")
 
-glotto_mt_lang_pairs = [[iso_to_glottocode.get(lang1, lang1), iso_to_glottocode.get(lang2, lang2)] for lang1, lang2 in mt_lang_pairs]
-
-# Open CSV file to write mt distances
-with open(CURRENT_DIRECTORY / "mt_distances.csv", "w", encoding="utf-8", newline="") as file:
-    writer = csv.writer(file)
-
-    # Write the header row to the CSV
-    header = ["Source lang", "Transfer lang"] + [d.upper() for d in DISTANCES]
-    writer.writerow(header)
-
-    # Loop through each language pair and compute distances
-    for lang_pair in glotto_mt_lang_pairs:
-        distance_values = u.new_distance(DISTANCES, lang_pair)  # Returns list of distances
-
-        # Print formatted distances to console (for debugging/inspection)
-        distance_str = ",".join(f"{value:.4f}" for value in distance_values)
-        print(distance_str)
-
-        # Write result to CSV: [source_lang, target_lang, distances...]
-        writer.writerow([lang_pair[0], lang_pair[1]] + distance_values)
-
-log_step_time("Calculate distances for mt")
-
-# Calculate distances for languages in pos.
-pos_df = pd.read_csv(PROJECT_ROOT / "experiment_csvs" / "URIEL" / "pos.csv")
-
-pos_lang_pairs = pos_df[['Task lang' , 'Aux lang']].values.tolist()
-
-iso_pos_lang_pairs = [[ISO_639_3_MAPPING.get(lang1, lang1), ISO_639_3_MAPPING.get(lang2, lang2)] for lang1, lang2 in pos_lang_pairs]
-
-glotto_pos_lang_pairs = [[iso_to_glottocode.get(lang1, lang1), iso_to_glottocode.get(lang2, lang2)] for lang1, lang2 in iso_pos_lang_pairs]
-
-# Open CSV file to write pos distances
-with open(CURRENT_DIRECTORY / "pos_distances.csv", "w", encoding="utf-8", newline="") as file:
-    writer = csv.writer(file)
-
-    # Write the header row to the CSV
-    header = ["Task lang" , "Aux lang"] + [d.upper() for d in DISTANCES]
-    writer.writerow(header)
-
-    # Loop through each language pair and compute distances
-    for lang_pair in glotto_pos_lang_pairs:
-        distance_values = u.new_distance(DISTANCES, lang_pair)  # Returns list of distances
-
-        # Print formatted distances to console (for debugging/inspection)
-        distance_str = ",".join(f"{value:.4f}" for value in distance_values)
-        print(distance_str)
-
-        # Write result to CSV: [source_lang, target_lang, distances...]
-        writer.writerow([lang_pair[0], lang_pair[1]] + distance_values)
-
-log_step_time("Calculate distances for pos")
-
-print(f"\nAll done. Total time: {time.time() - start_time:.2f}s")
 with open(TIMING_LOG_PATH, "a", encoding="utf-8") as f:
-    f.write(f"\nAll done. Total time: {time.time() - start_time:.2f}s\n")
+    f.write(f"Unique pairs recalculated: {len(variable_cache)}\n")
+    f.write(f"\nAll done. Total time: {total_time:.2f}s\n")
