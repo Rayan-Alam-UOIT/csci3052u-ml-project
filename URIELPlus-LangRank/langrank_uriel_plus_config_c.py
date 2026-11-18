@@ -28,6 +28,7 @@ INPUT_DIR   = LANGRANK_DIR / "experiment_csvs" / "URIEL"   # original experiment
 CSV_DIR     = LANGRANK_DIR / "src" / "csv_datasets"        # updated experiment CSVs (output of Step 4)
 RESULTS_DIR = LANGRANK_DIR / "results"
 TIMING_DIR  = RESULTS_DIR / "timing_logs"
+TIMING_DIR.mkdir(parents=True, exist_ok=True)
 NPZ = ["family_features.npz", "script_features.npz", "geocoord_features.npz"]
 DIST_COLS = ["GENETIC", "SYNTACTIC", "FEATURAL", "PHONOLOGICAL", "INVENTORY", "GEOGRAPHIC", "MORPHOLOGICAL", "SCRIPT"]
 PYTHON = sys.executable
