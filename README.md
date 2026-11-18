@@ -25,7 +25,12 @@
 
 ---
 
-_This README is a work in progress and will be updated as the project develops._
+## Overview
+
+This project investigates whether phylogenetically informed dimensionality reduction can improve cross-lingual transfer language ranking. Using URIEL+ typological data, we compare the original feature representation, standard PCA, and phylogenetically weighted PCA across four LangRank tasks.
+
+The experiments evaluate how feature count and language-family weighting influence ranking performance, with an emphasis on reproducibility, sensitivity analysis, and computational efficiency.
+
 
 ## Setup
 
@@ -43,7 +48,11 @@ Note for macOS users: LightGBM requires the OpenMP runtime library (libomp). Ens
 
 Open each notebook with the `urielplus` environment as its kernel. The LangRank notebooks check that LightGBM works (a small ranking fit) and install a compatible LightGBM and scikit-learn pair if it crashes.
 
+The weighted PCA experiments additionally use the precomputed feature-selection archive at `jaccard_analysis/weighted_pca_sweep_output.zip`. Ensure this archive and the prepared `data.zip` are available before running the weighted PCA sweep.
+
 ## Running the Pipeline
+
+The pipeline consists of five steps: preparing the URIEL+ dataset, applying standard PCA, evaluating the original and reduced representations, and exploring phylogenetically weighted PCA.
 
 Run the steps in order. Run every cell in each notebook using **Run All**, including the setup, validation and packaging cells. Failed validation checks raise an error. ZIP extraction, data preparation and packaging are handled automatically by the scripts and notebooks.
 
@@ -53,6 +62,7 @@ Run the steps in order. Run every cell in each notebook using **Run All**, inclu
 | 2 | `config_b_standard_pca.py` | `standard_pca.zip` | seconds |
 | 3 | `URIELPlus-LangRank/langrank_uriel_plus_config_a.ipynb` | `base_urielplus_reproduction.zip` | about 2.5 to 3 h |
 | 4 | `URIELPlus-LangRank/langrank_uriel_plus_config_b.ipynb` | `standard_pca_reproduction.zip` | about 2.5 to 3 h |
+| 5 | `URIELPlus-LangRank/langrank_uriel_plus_config_c.py` | `weighted_pca_sweep_results.zip` | about 2.5 to 3 h |
 
 Runtime estimates depend on hardware and system load.
 
@@ -97,9 +107,39 @@ Run Config A to completion, including the final packaging cell, before starting 
 
 Keep the machine awake and the kernel running. If the distance step is interrupted, rerun the notebook and that Step restarts from scratch.
 
+
+### Step 5: Evaluate Phylogenetically Weighted PCA (Config C)
+
+Config C extends standard PCA by incorporating phylogenetic weights during feature selection. Languages belonging to densely represented families receive less influence, while languages from smaller groups receive relatively more influence.
+
+The experiment evaluates seven feature counts (N = 100, 150, 200, 250, 300, 350, 400) across six weighting variants: `uniform`, `w_finest`, `w_finest_adminmedian`, `w_finest_adminzero`, `w_level3_a05`, and `w_level3_a1`.
+
+This produces **42 configurations**, each evaluated on four LangRank tasks (DEP, EL, MT, POS) using both all-features and language-only modes.
+
+The experiment runner is located at `URIELPlus-LangRank/langrank_uriel_plus_config_c.py`. It uses the precomputed feature-selection archive at `jaccard_analysis/weighted_pca_sweep_output.zip` and reuses fixed distance calculations while caching repeated language-pair computations.
+
+From the repository root, run:
+
+```bash
+python URIELPlus-LangRank/langrank_uriel_plus_config_c.py
+```
+
+Results are packaged into `weighted_pca_sweep_results.zip`, with each configuration identified by its directory path, such as `N_300/uniform` or `N_150/w_finest_adminzero`.
+
+
 ## Outputs
 
-Each reproduction ZIP contains the distance CSVs, the updated experiment CSVs, the four URIEL+ database arrays, the timing logs, `scores.txt` (per-fold and average NDCG@3 for every task and mode) and `results_table.csv` (average NDCG@3 per task and mode, plus the mean over the four tasks). All NDCG@3 scores in the results tables are reported on a 0–100 scale. To compare configurations, read `results_table.csv` from `base_urielplus_reproduction.zip` and `standard_pca_reproduction.zip`.
+The pipeline produces three primary experiment archives:
+
+- `base_urielplus_reproduction.zip` — Config A, using the full URIEL+ feature set.
+- `standard_pca_reproduction.zip` — Config B, using 300 features selected through standard PCA.
+- `weighted_pca_sweep_results.zip` — Config C, containing all 42 standard and weighted PCA configurations.
+
+Each reproduction archive contains the generated distance CSVs, updated experiment CSVs, timing logs, `scores.txt` (individual held-out-group and average NDCG@3 scores), and `results_table.csv` (average NDCG@3 by task and feature mode). The Config A and B archives also include the four URIEL+ database arrays.
+
+The Config C archive organizes results by feature count and weighting variant using the format `N_<count>/<weight_variant>`. These paths serve as unique experiment identifiers and allow individual runs to be traced back to their corresponding results.
+
+All NDCG@3 scores in the results tables are reported on a 0–100 scale. The saved fold-level results support evaluation across held-out language groups, although experiments were not repeated across independent random seeds.
 
 ## Expected Results
 
@@ -121,14 +161,35 @@ All scores are reported on a **0–100 scale**. Small differences may occur due 
 | LangRank (all) | 76.8 | 75.1 | 54.0 | 28.9 | 58.7 |
 | LangRank (lang feats) | 73.0 | 74.0 | 34.5 | 23.2 | 51.2 |
 
+
+### Config C: Phylogenetically Weighted PCA
+
+The 42-configuration sweep compares standard and phylogenetically weighted PCA across different feature counts and weighting strategies.
+
+The strongest overall configuration is uniform PCA with 300 selected features. The best weighted configuration using all features is `N_150/w_finest_adminzero`, which achieves a similar but slightly lower average score.
+
+| Configuration | N | All Features | Language Features |
+|---|---:|---:|---:|
+| Config A (full features) | Full | 54.7 | 47.3 |
+| Uniform PCA | 300 | **58.7** | **51.2** |
+| Weighted PCA (`w_finest_adminzero`) | 150 | 58.3 | — |
+
+Although phylogenetic weighting changes the selected feature sets, no tested weighting strategy consistently outperforms uniform PCA across feature counts, tasks, and evaluation modes.
+
+
 ### Comparing Configurations
 
-Config B achieves a higher average NDCG@3 than Config A for both evaluation modes:
+Standard PCA improves the four-task mean Average NDCG@3 over the full-feature baseline in both evaluation modes:
 
-- **LangRank (all):** 58.7 vs. 54.7, an improvement of 4.0 points.
-- **LangRank (lang feats):** 51.2 vs. 47.3, an improvement of 3.9 points.
+- **All features:** 58.7 vs. 54.7, an improvement of 4.0 points.
+- **Language features only:** 51.2 vs. 47.3, an improvement of 3.9 points.
 
-To check the reproduction, compare these reference values against the corresponding rows in `results_table.csv` inside each reproduction ZIP. The `scores.txt` files provide the per-fold results and additional details.
+The largest improvement occurs in entity linking, while dependency parsing and machine translation show relatively small changes.
+
+Phylogenetic weighting introduces alternative feature selections but does not produce consistent improvements over standard PCA. Performance varies across feature counts, weighting strategies, and tasks, suggesting that the benefits of phylogenetic balancing are sensitive to the experimental configuration.
+
+Overall, standard PCA with 300 selected features provides the strongest results among the tested configurations.
+
 
 ## Data and Licenses
 
